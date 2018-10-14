@@ -1,0 +1,60 @@
+# ---------------
+# info bot
+# ---------------
+from flask import Flask, request
+import telepot
+import urllib3
+import time
+import os
+
+
+proxy_url = "http://proxy.server:3128"
+telepot.api._pools = {
+    'default': urllib3.ProxyManager(proxy_url=proxy_url, num_pools=3, maxsize=10, retries=False, timeout=30),
+}
+telepot.api._onetime_pool_spec = (urllib3.ProxyManager, dict(proxy_url=proxy_url, num_pools=1, maxsize=1, retries=False, timeout=30))
+
+secret = "2"
+bot = telepot.Bot(<TOKEN>)
+bot.setWebhook("https://YOUR_USERNAME_IN_PYTHONANYWHERE.pythonanywhere.com/{}".format(secret), max_connections=1)
+
+app = Flask(__name__)
+
+@app.route('/{}'.format(secret), methods=["POST"])
+def telegram_webhook():
+    update = request.get_json()
+    text = update["message"]["text"]
+    chat_id = update["message"]["chat"]["id"]
+    
+    # TO SEND ALL USER AND MESSAGE INFO -------------------------------------------------------
+    # if there is a new message
+    # if "message" in update:
+    #     bot.sendMessage(chat_id, update)
+    
+    # TO SEND A PORTION OF USER AND MESSAGE INFO -----------------------------------------------
+    # if there is a new message
+    if "message" in update:
+
+        sender_id = update["message"]["from"]["id"]
+        sender_name = update["message"]["from"]["first_name"]
+        sender_username = update["message"]["from"]["username"]
+
+        # change timezone to IRAN
+        os.environ['TZ'] = 'Asia/Tehran'
+        time.tzset()
+
+        chat_date = time.strftime("\n- %A\n- %Y-%m-%d\n- %H:%M:%S %p (Iran)")
+
+        info = "your INFO:\n\nyour ID: '{}'\nyour Name: '{}'\nyour username: '{}'\n\nDate: {}".format(sender_id, sender_name, sender_username, chat_date)
+        usertext = "you sent:\n{}\n-------- *** --------\n".format(text)
+
+        info_and_text = usertext + info
+        bot.sendMessage(chat_id, info_and_text)
+
+        # to notice YOU, who useed this
+        user = '@' + sender_username
+        bot.sendMessage(<YOUR_NUMBER_ID>, user)
+        # ---
+
+    return "OK"
+# 1
